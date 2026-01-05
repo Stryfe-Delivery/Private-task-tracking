@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Color Grid Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #111;
+            color: white;
+            overflow-x: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 80px);
+            overflow: hidden;
+        }
+        
+        .slider {
+            display: flex;
+            width: 600vw;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+        
+        .grid-page {
+            width: 100vw;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+        }
+        
+        .color-header {
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: capitalize;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .grid-container {
+            flex: 1;
+            width: 100%;
+            overflow-y: auto;
+            padding: 10px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 3px;
+            width: 100%;
+            max-width: 100%;
+        }
+        
+        .checkbox-cell {
+            aspect-ratio: 1;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* Border styles for unchecked state */
+        .checkbox-cell:not(.checked) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Filled color for checked state */
+        .checkbox-cell.checked {
+            opacity: 1;
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .checkbox-cell:active {
+            transform: scale(0.95);
+        }
+        
+        /* Color themes for checked state */
+        .checkbox-cell.red.checked { background: #ff4757; }
+        .checkbox-cell.orange.checked { background: #ffa502; }
+        .checkbox-cell.yellow.checked { background: #ffd32a; }
+        .checkbox-cell.green.checked { background: #2ed573; }
+        .checkbox-cell.blue.checked { background: #1e90ff; }
+        .checkbox-cell.purple.checked { background: #9c88ff; }
+        
+        /* Day number inside checkbox */
+        .day-number {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.7);
+            pointer-events: none;
+        }
+        
+        .checkbox-cell.checked .day-number {
+            color: rgba(0, 0, 0, 0.8);
+        }
+        
+        .color-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.8);
+        }
+        
+        .color-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        /* ADDED: Background colors for the dots */
+        .color-dot.red { background: #ff4757; }
+        .color-dot.orange { background: #ffa502; }
+        .color-dot.yellow { background: #ffd32a; }
+        .color-dot.green { background: #2ed573; }
+        .color-dot.blue { background: #1e90ff; }
+        .color-dot.purple { background: #9c88ff; }
+        
+        .color-dot.active {
+            border-color: white;
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .instructions {
+            text-align: center;
+            padding: 10px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        
+        /* Month labels */
+        .month-row {
+            display: contents;
+        }
+        
+        .month-label {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #aaa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 5px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .container {
+                max-width: 600px;
+                margin: 0 auto;
+                border: 1px solid #333;
+            }
+            
+            .checkbox-cell {
+                border-width: 2px;
+            }
+            
+            .color-dot {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .color-indicators {
+                max-width: 600px;
+                margin: 0 auto;
+            }
+        }
+        
+        /* Hide the actual checkbox input */
+        .checkbox-cell input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="slider" id="slider">
+            <!-- Pages will be generated by JavaScript -->
+        </div>
+    </div>
+    
+    <div class="instructions">
+        Swipe left/right or tap dots below to switch colors
+    </div>
+    
+    <div class="color-indicators" id="colorIndicators">
+        <!-- Color dots will be generated by JavaScript -->
+    </div>
+
+    <script>
+        // Configuration
+        const COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+        const MONTHS = [
+            { name: 'January', days: 31 },
+            { name: 'February', days: 28 }, // Non-leap year
+            { name: 'March', days: 31 },
+            { name: 'April', days: 30 },
+            { name: 'May', days: 31 },
+            { name: 'June', days: 30 },
+            { name: 'July', days: 31 },
+            { name: 'August', days: 31 },
+            { name: 'September', days: 30 },
+            { name: 'October', days: 31 },
+            { name: 'November', days: 30 },
+            { name: 'December', days: 31 }
+        ];
+        
+        // App state
+        let currentPage = 0;
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let gridData = loadData();
+        
+        // Initialize the app
+        function init() {
+            createPages();
+            createColorIndicators();
+            updateDisplay();
+            setupEventListeners();
+        }
+        
+        // Create all grid pages
+        function createPages() {
+            const slider = document.getElementById('slider');
+            
+            COLORS.forEach((color, colorIndex) => {
+                const page = document.createElement('div');
+                page.className = 'grid-page';
+                page.dataset.color = color;
+                
+                const header = document.createElement('div');
+                header.className = 'color-header ' + color;
+                header.textContent = `${color.charAt(0).toUpperCase() + color.slice(1)} Grid - Daily Tracker`;
+                
+                const gridContainer = document.createElement('div');
+                gridContainer.className = 'grid-container';
+                
+                const grid = document.createElement('div');
+                grid.className = 'grid';
+                
+                // Create checkboxes for each month
+                let dayCounter = 1;
+                MONTHS.forEach(month => {
+                    // Add month label
+                    const monthLabel = document.createElement('div');
+                    monthLabel.className = 'month-label';
+                    monthLabel.textContent = month.name;
+                    grid.appendChild(monthLabel);
+                    
+                    // Create checkboxes for this month
+                    for (let day = 1; day <= month.days; day++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'checkbox-cell ' + color;
+                        cell.dataset.day = dayCounter;
+                        cell.dataset.color = color;
+                        cell.dataset.month = month.name;
+                        cell.dataset.date = `${month.name} ${day}`;
+                        
+                        // Add day number
+                        const dayNumber = document.createElement('span');
+                        dayNumber.className = 'day-number';
+                        dayNumber.textContent = day;
+                        cell.appendChild(dayNumber);
+                        
+                        // Check saved state
+                        const cellId = `${color}-${dayCounter}`;
+                        if (gridData[cellId]) {
+                            cell.classList.add('checked');
+                        }
+                        
+                        // Add event listeners
+                        cell.addEventListener('click', () => toggleCell(cell));
+                        cell.addEventListener('touchstart', (e) => {
+                            e.preventDefault(); // Prevent scroll
+                            toggleCell(cell);
+                        }, { passive: false });
+                        
+                        grid.appendChild(cell);
+                        dayCounter++;
+                    }
+                });
+                
+                gridContainer.appendChild(grid);
+                page.appendChild(header);
+                page.appendChild(gridContainer);
+                slider.appendChild(page);
+            });
+        }
+        
+        // Create color indicator dots
+        function createColorIndicators() {
+            const container = document.getElementById('colorIndicators');
+            
+            COLORS.forEach((color, index) => {
+                const dot = document.createElement('div');
+                dot.className = `color-dot ${color} ${index === 0 ? 'active' : ''}`;
+                dot.dataset.index = index;
+                dot.addEventListener('click', () => goToPage(index));
+                container.appendChild(dot);
+            });
+        }
+        
+        // Toggle checkbox cell state
+        function toggleCell(cell) {
+            cell.classList.toggle('checked');
+            const day = cell.dataset.day;
+            const color = cell.dataset.color;
+            const cellId = `${color}-${day}`;
+            
+            gridData[cellId] = cell.classList.contains('checked');
+            saveData();
+            
+            // Visual feedback
+            cell.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                cell.style.transform = '';
+            }, 100);
+        }
+        
+        // Go to specific page
+        function goToPage(pageIndex) {
+            currentPage = pageIndex;
+            updateDisplay();
+        }
+        
+        // Update display based on current page
+        function updateDisplay() {
+            const slider = document.getElementById('slider');
+            const dots = document.querySelectorAll('.color-dot');
+            
+            // Move slider
+            slider.style.transform = `translateX(-${currentPage * 100}vw)`;
+            
+            // Update active dot
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentPage);
+            });
+        }
+        
+        // Setup event listeners for swiping
+        function setupEventListeners() {
+            const container = document.querySelector('.container');
+            
+            // Touch events for mobile
+            container.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                // Prevent vertical scrolling if we're about to swipe horizontally
+                if (Math.abs(e.touches[0].clientX - touchStartX) > 10) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            container.addEventListener('touchmove', (e) => {
+                touchEndX = e.touches[0].clientX;
+                // Prevent vertical scrolling during horizontal swipe
+                if (Math.abs(touchEndX - touchStartX) > Math.abs(e.touches[0].clientY - touchStartX)) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            container.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].clientX;
+                handleSwipe();
+            });
+            
+            // Mouse events for desktop
+            let mouseDown = false;
+            let mouseStartX = 0;
+            
+            container.addEventListener('mousedown', (e) => {
+                mouseDown = true;
+                mouseStartX = e.clientX;
+                e.preventDefault();
+            });
+            
+            container.addEventListener('mousemove', (e) => {
+                if (mouseDown) {
+                    touchEndX = e.clientX;
+                }
+            });
+            
+            container.addEventListener('mouseup', (e) => {
+                if (mouseDown) {
+                    mouseDown = false;
+                    touchStartX = mouseStartX;
+                    touchEndX = e.clientX;
+                    handleSwipe();
+                }
+            });
+            
+            container.addEventListener('mouseleave', () => {
+                mouseDown = false;
+            });
+            
+            // Keyboard navigation for accessibility
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    goToPage(Math.max(0, currentPage - 1));
+                } else if (e.key === 'ArrowRight') {
+                    goToPage(Math.min(COLORS.length - 1, currentPage + 1));
+                }
+            });
+            
+            // Handle click/touch on checkboxes - prevent swipe conflict
+            document.querySelectorAll('.checkbox-cell').forEach(cell => {
+                cell.addEventListener('touchstart', (e) => {
+                    // Mark this as a checkbox interaction, not a swipe
+                    e.stopPropagation();
+                });
+                
+                cell.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                });
+            });
+        }
+        
+        // Handle swipe gestures
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    // Swipe left - next page
+                    goToPage(Math.min(COLORS.length - 1, currentPage + 1));
+                } else {
+                    // Swipe right - previous page
+                    goToPage(Math.max(0, currentPage - 1));
+                }
+            }
+        }
+        
+        // Load data from localStorage
+        function loadData() {
+            try {
+                const saved = localStorage.getItem('gridTrackerData');
+                return saved ? JSON.parse(saved) : {};
+            } catch (e) {
+                console.error('Error loading data:', e);
+                return {};
+            }
+        }
+        
+        // Save data to localStorage
+        function saveData() {
+            try {
+                localStorage.setItem('gridTrackerData', JSON.stringify(gridData));
+            } catch (e) {
+                console.error('Error saving data:', e);
+            }
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+        
+        // Auto-save before page unload
+        window.addEventListener('beforeunload', saveData);
+        
+        // Add leap year support
+        function isLeapYear() {
+            const year = new Date().getFullYear();
+            return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+        }
+        
+        // Update February for leap years
+        function updateForLeapYear() {
+            if (isLeapYear()) {
+                MONTHS[1].days = 29; // Update February
+                
+                // Update the grid display if needed
+                document.querySelectorAll('.grid').forEach(grid => {
+                    const cells = grid.querySelectorAll('.checkbox-cell[data-month="February"]');
+                    const febCells = Array.from(cells).filter(cell => {
+                        const dayNum = parseInt(cell.querySelector('.day-number').textContent);
+                        return dayNum === 29;
+                    });
+                    
+                    // If we need to add Feb 29
+                    if (febCells.length === 0) {
+                        // Find the last February cell
+                        const lastFebCell = grid.querySelector('.checkbox-cell[data-month="February"]:last-of-type');
+                        if (lastFebCell) {
+                            // Clone and update the last cell for day 29
+                            const newCell = lastFebCell.cloneNode(true);
+                            const dayNumSpan = newCell.querySelector('.day-number');
+                            const color = newCell.dataset.color;
+                            const dayCounter = parseInt(lastFebCell.dataset.day) + 1;
+                            
+                            dayNumSpan.textContent = '29';
+                            newCell.dataset.day = dayCounter;
+                            newCell.dataset.date = 'February 29';
+                            
+                            // Check saved state
+                            const cellId = `${color}-${dayCounter}`;
+                            if (gridData[cellId]) {
+                                newCell.classList.add('checked');
+                            } else {
+                                newCell.classList.remove('checked');
+                            }
+                            
+                            // Add event listeners
+                            newCell.addEventListener('click', () => toggleCell(newCell));
+                            newCell.addEventListener('touchstart', (e) => {
+                                e.preventDefault();
+                                toggleCell(newCell);
+                            }, { passive: false });
+                            
+                            // Insert after last February cell
+                            lastFebCell.parentNode.insertBefore(newCell, lastFebCell.nextSibling);
+                            
+                            // Update all subsequent day numbers and data attributes
+                            let nextCell = newCell.nextElementSibling;
+                            let currentDay = dayCounter + 1;
+                            while (nextCell) {
+                                if (nextCell.classList.contains('checkbox-cell')) {
+                                    nextCell.dataset.day = currentDay;
+                                    const oldDayNum = parseInt(nextCell.querySelector('.day-number').textContent);
+                                    nextCell.querySelector('.day-number').textContent = oldDayNum;
+                                    currentDay++;
+                                }
+                                nextCell = nextCell.nextElementSibling;
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Check for leap year on load
+        setTimeout(updateForLeapYear, 100);
+    </script>
+</body>
+</html>
